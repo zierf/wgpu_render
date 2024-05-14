@@ -1,0 +1,18 @@
+# lld as linker
+
+## for Linux
+#[target.x86_64-unknown-linux-gnu]
+#linker = "clang"
+#rustflags = ["-C", "link-arg=-fuse-ld=lld"]
+#
+## for x86_64 MacOS
+#[target.x86_64-apple-darwin]
+#rustflags = ["-C", "link-arg=-fuse-ld=/usr/local/opt/llvm/bin/ld64.lld"]
+#
+## for aarch64 MacOS
+#[target.aarch64-apple-darwin]
+#rustflags = ["-C", "link-arg=-fuse-ld=/opt/homebrew/opt/llvm/bin/ld64.lld"]
+#
+## for Windows
+#[target.x86_64-pc-windows-msvc]
+#linker = "rust-lld.exe"
