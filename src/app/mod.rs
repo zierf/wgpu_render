@@ -1,22 +1,30 @@
+mod state;
+
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::*;
 
 use tracing::info;
 
+use std::sync::Arc;
+
 use winit::{
     application::ApplicationHandler,
+    dpi::PhysicalSize,
     event::*,
     event_loop::ActiveEventLoop,
     keyboard::{KeyCode, PhysicalKey},
     window::{Window, WindowId},
 };
 
-#[derive(Debug, Default)]
+use state::State;
+
+#[derive(Debug)]
 pub struct App {
-    window: Option<Window>,
     width: u32,
     height: u32,
     title: String,
+    window: Option<Arc<Window>>,
+    state: Option<State>,
 }
 
 impl App {
@@ -25,27 +33,24 @@ impl App {
             title: title.into(),
             width,
             height,
-            ..Default::default()
+            window: None,
+            state: None,
         }
     }
 }
 
-/// @link https://docs.rs/winit/latest/winit/index.html
+/// @link https://docs.rs/winit/0.30.0/winit/index.html
 impl ApplicationHandler for App {
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
         let window_attributes = Window::default_attributes()
             .with_title(&self.title)
             .with_inner_size(winit::dpi::LogicalSize::new(self.width, self.height));
 
-        let window = event_loop.create_window(window_attributes).unwrap();
+        let window = Arc::new(event_loop.create_window(window_attributes).unwrap());
 
         #[cfg(target_arch = "wasm32")]
         {
-            // Winit prevents sizing with CSS, so we have to set
-            // the size manually when on web.
-            use winit::dpi::PhysicalSize;
-            let _ = window.request_inner_size(PhysicalSize::new(self.width, self.height));
-
+            // web import trait method WindowExtWebSys::canvas(&self)
             use winit::platform::web::WindowExtWebSys;
 
             web_sys::window()
@@ -68,10 +73,29 @@ impl ApplicationHandler for App {
                 .expect("Couldn't append canvas to element!");
         }
 
+        // FIXME requesting adapter and device return futures, but ApplicationHandler::resumed is synchronous
+        let state = pollster::block_on(State::new(Arc::clone(&window)));
+
         self.window = Some(window);
+        self.state = Some(state);
     }
 
-    fn window_event(&mut self, event_loop: &ActiveEventLoop, _id: WindowId, event: WindowEvent) {
+    fn window_event(&mut self, event_loop: &ActiveEventLoop, window_id: WindowId, event: WindowEvent) {
+        let window = self.window.as_ref().unwrap();
+        let state = self.state.as_mut().unwrap();
+
+        // WindowEvent has a WindowId member. In multi-window environments, it should be compared
+        // to the value returned by Window::id() to determine which Window dispatched the event.
+        // https://docs.rs/winit/latest/winit/#event-handling
+        if window_id != window.id() {
+            return;
+        }
+
+        // If the method returns true, the main loop won't process the event any further.
+        if state.input(&event) {
+            return;
+        }
+
         match event {
             WindowEvent::CloseRequested
             | WindowEvent::KeyboardInput {
@@ -86,6 +110,14 @@ impl ApplicationHandler for App {
                 println!("Close requested, stopping …");
                 event_loop.exit();
             }
+            WindowEvent::Resized(physical_size) => {
+                state.resize(physical_size);
+            }
+            WindowEvent::ScaleFactorChanged {
+                scale_factor: _, ..
+            } => {
+                state.resize(PhysicalSize::new(self.width, self.height));
+            }
             WindowEvent::RedrawRequested => {
                 // Redraw the application.
                 //
@@ -93,7 +125,20 @@ impl ApplicationHandler for App {
                 // this event rather than in AboutToWait, since rendering in here allows
                 // the program to gracefully handle redraws requested by the OS.
 
-                // Draw.
+                // Draw
+                let size = state.size();
+
+                state.update();
+
+                match state.render() {
+                    Ok(_) => {}
+                    // Reconfigure the surface if lost
+                    Err(wgpu::SurfaceError::Lost) => state.resize(size),
+                    // The system is out of memory, we should probably quit
+                    Err(wgpu::SurfaceError::OutOfMemory) => event_loop.exit(),
+                    // All other errors (Outdated, Timeout) should be resolved by the next frame
+                    Err(e) => eprintln!("{:?}", e),
+                }
 
                 // Queue a RedrawRequested event.
                 //
