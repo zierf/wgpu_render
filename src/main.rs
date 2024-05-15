@@ -1,3 +1,5 @@
+use wgpu_render::run_app;
+
 fn main() {
-    println!("Hello, world!");
+    pollster::block_on(run_app());
 }
