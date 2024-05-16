@@ -74,13 +74,19 @@ impl ApplicationHandler for App {
         }
 
         // FIXME requesting adapter and device return futures, but ApplicationHandler::resumed is synchronous
+        // FIXME Check WASM Error "already borrowed: BorrowMutError" after closing Tab in Firefox (not on refresh!)
         let state = pollster::block_on(State::new(Arc::clone(&window)));
 
         self.window = Some(window);
         self.state = Some(state);
     }
 
-    fn window_event(&mut self, event_loop: &ActiveEventLoop, window_id: WindowId, event: WindowEvent) {
+    fn window_event(
+        &mut self,
+        event_loop: &ActiveEventLoop,
+        window_id: WindowId,
+        event: WindowEvent,
+    ) {
         let window = self.window.as_ref().unwrap();
         let state = self.state.as_mut().unwrap();
 

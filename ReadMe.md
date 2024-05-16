@@ -30,3 +30,17 @@ cargo install wasm-server-runner
 ```SH
 WASM_SERVER_RUNNER_CUSTOM_INDEX_HTML=index.html cargo watch -x "run --target wasm32-unknown-unknown"
 ```
+
+## Shader Validation
+
+### Shader Prerequisites
+
+```SH
+cargo install cargo-wgsl
+```
+
+### Validate Shaders
+
+```SH
+cargo wgsl
+```
