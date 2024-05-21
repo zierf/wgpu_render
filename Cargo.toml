@@ -15,6 +15,8 @@ lto = "fat"
 panic = "abort"
 
 [features]
+default = []
+wee_alloc = [ "dep:wee_alloc" ]
 
 [dependencies]
 cfg-if = "1.0.0"
@@ -22,6 +24,7 @@ log = "0.4.21"
 pollster = "0.3.0"
 tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.18", features = ["time"] }
+wee_alloc = { version = "0.4.5", optional = true }
 wgpu = "0.20.0"
 winit = { version = "0.30.0", default-features = false, features = ["rwh_06", "x11"] }
 

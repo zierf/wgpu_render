@@ -17,6 +17,10 @@ const LOG_LEVEL: tracing::Level = tracing::Level::WARN;
 
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen(start))]
 pub async fn run_app() {
+    #[cfg(feature = "wee_alloc")]
+    #[global_allocator]
+    static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
+
     cfg_if! {
         if #[cfg(target_arch = "wasm32")] {
             console_error_panic_hook::set_once();
