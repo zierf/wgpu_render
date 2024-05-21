@@ -1,4 +1,5 @@
-use std::sync::Arc;
+use alloc::sync::Arc;
+use alloc::vec;
 
 use wgpu::PresentMode;
 use winit::{dpi::PhysicalSize, event::WindowEvent, window::Window};
@@ -244,7 +245,7 @@ impl State {
         }
 
         // submit will accept anything that implements IntoIter
-        self.queue.submit(std::iter::once(encoder.finish()));
+        self.queue.submit(core::iter::once(encoder.finish()));
         output.present();
 
         Ok(())
