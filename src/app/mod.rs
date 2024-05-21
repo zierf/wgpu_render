@@ -5,8 +5,8 @@ use wasm_bindgen::prelude::*;
 
 use tracing::{error, info};
 
-use alloc::sync::Arc;
 use alloc::string::String;
+use alloc::sync::Arc;
 
 use winit::{
     application::ApplicationHandler,

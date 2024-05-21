@@ -10,7 +10,6 @@ use wasm_bindgen::prelude::*;
 
 use winit::event_loop::{ControlFlow, EventLoop};
 
-use cfg_if::cfg_if;
 use tracing::{error, info, warn};
 
 const LOG_LEVEL: tracing::Level = tracing::Level::WARN;
@@ -21,22 +20,27 @@ pub async fn run_app() {
     #[global_allocator]
     static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
-    cfg_if! {
-        if #[cfg(target_arch = "wasm32")] {
-            console_error_panic_hook::set_once();
-            // tracing for all log levels
-            // tracing_wasm::set_as_global_default();
+    #[cfg(target_arch = "wasm32")]
+    {
+        console_error_panic_hook::set_once();
+        // tracing for all log levels
+        // tracing_wasm::set_as_global_default();
 
-            let wasm_layer_config = tracing_wasm::WASMLayerConfigBuilder::new().set_max_level(LOG_LEVEL).build();
-            tracing_wasm::set_as_global_default_with_config(wasm_layer_config);
-        } else {
-            // tracing for all log levels
-            // tracing_subscriber::fmt::init();
+        let wasm_layer_config = tracing_wasm::WASMLayerConfigBuilder::new()
+            .set_max_level(LOG_LEVEL)
+            .build();
+        tracing_wasm::set_as_global_default_with_config(wasm_layer_config);
+    }
 
-            use tracing_subscriber::FmtSubscriber;
-            let subscriber = FmtSubscriber::builder().with_max_level(LOG_LEVEL).finish();
-            tracing::subscriber::set_global_default(subscriber).expect("setting default tracing subscriber failed!");
-        }
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        // tracing for all log levels
+        // tracing_subscriber::fmt::init();
+
+        use tracing_subscriber::FmtSubscriber;
+        let subscriber = FmtSubscriber::builder().with_max_level(LOG_LEVEL).finish();
+        tracing::subscriber::set_global_default(subscriber)
+            .expect("setting default tracing subscriber failed!");
     }
 
     info!("Example Info!");
